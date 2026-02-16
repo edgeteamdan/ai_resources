@@ -144,13 +144,15 @@ This password is for sudo prompts / console access. It does **not** enable SSH p
 
 On fresh machines, pnpm can’t always figure out where to put global binaries.
 
-In this repo’s setup script, we avoid this by installing OpenClaw globally with **npm**.
+In this repo’s setup script, we avoid this by configuring pnpm’s global directories explicitly:
+- global dir: `/usr/local/share/pnpm/global`
+- global bin dir: `/usr/local/bin`
 
-If you do want pnpm globals later, run:
+If you still hit pnpm global issues, you can inspect your pnpm config:
 
 ```bash
-pnpm setup
-# restart your shell
+pnpm config get global-dir
+pnpm config get global-bin-dir
 ```
 
 ## 10) OAuth / “needs browser” logins

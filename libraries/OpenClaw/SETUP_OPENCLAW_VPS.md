@@ -49,7 +49,7 @@ Do these before you start wiring bots/channels:
 Then install OpenClaw (global):
 
 ```bash
-npm i -g openclaw@latest
+pnpm add -g openclaw@latest
 openclaw --version
 ```
 
