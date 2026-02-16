@@ -371,11 +371,28 @@ install_pnpm() {
   log "Installing pnpm"
   corepack enable || true
   corepack prepare pnpm@latest --activate || npm i -g pnpm
+
+  # Configure a deterministic global location so pnpm global installs work on fresh VPSes.
+  # This avoids ERR_PNPM_NO_GLOBAL_BIN_DIR and makes the OpenClaw install reproducible.
+  log "Configuring pnpm global directories"
+  pnpm config set global-dir /usr/local/share/pnpm/global
+  pnpm config set global-bin-dir /usr/local/bin
+
+  mkdir -p /usr/local/share/pnpm/global || true
+  mkdir -p /usr/local/bin || true
+
+  # Ensure non-interactive shells (and systemd units) can find pnpm globals.
+  cat > /etc/profile.d/pnpm.sh <<'EOF'
+export PNPM_HOME="/usr/local/bin"
+export PATH="$PNPM_HOME:$PATH"
+EOF
 }
 
 install_openclaw() {
-  log "Installing OpenClaw (global)"
-  npm i -g openclaw@latest
+  log "Installing OpenClaw (global via pnpm)"
+  pnpm add -g openclaw@latest
+
+  # openclaw should now be on PATH via /usr/local/bin.
   log "OpenClaw version"
   openclaw --version || true
 }
