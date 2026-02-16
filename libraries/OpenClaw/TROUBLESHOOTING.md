@@ -99,16 +99,28 @@ ufw status verbose
 
 If you’re locked out, use your VPS provider’s console access to fix UFW rules.
 
-## 7) `ssh-copy-id` says “No identities found”
+## 7) `ssh-copy-id` prompts for a password / “No identities found”
 
-This means you don’t have an SSH key on your laptop yet.
+We avoid relying on `ssh-copy-id` in this repo, because on hardened servers:
+- password auth is disabled (so ssh-copy-id can't authenticate via password)
+- many users don't have a key yet ("No identities found")
 
-Fix:
+Instead:
 
+1) Make sure you have a key locally:
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
-ssh-copy-id -p 22 openclaw@<server-ip>
 ```
+
+2) Copy your public key:
+```bash
+cat ~/.ssh/id_ed25519.pub
+```
+
+3) Re-run the VPS setup script and paste the key when prompted.
+
+If you must install it manually as root, append it to:
+- `/home/openclaw/.ssh/authorized_keys`
 
 ## 8) pnpm global install error (ERR_PNPM_NO_GLOBAL_BIN_DIR)
 

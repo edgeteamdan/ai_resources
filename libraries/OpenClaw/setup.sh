@@ -47,6 +47,9 @@ INSTALL_TS=${INSTALL_TS:-N}
 read -r -p "Add swap file (recommended for 1–2GB RAM)? [Y/n]: " ADD_SWAP
 ADD_SWAP=${ADD_SWAP:-Y}
 
+read -r -p "Paste your SSH public key for the new '${OC_USER}' user (ed25519 .pub). Leave blank to skip for now: " SSH_PUBKEY
+SSH_PUBKEY=${SSH_PUBKEY:-}
+
 log "Updating apt + installing base packages"
 # We update the package list so Ubuntu knows about the latest security updates,
 # then install the basic tools we need for the rest of this script.
@@ -74,12 +77,36 @@ log "Adding ${OC_USER} to sudo group"
 # Allows the user to run administrative commands via sudo.
 usermod -aG sudo "$OC_USER"
 
+if [[ -n "$SSH_PUBKEY" ]]; then
+  log "Authorizing your SSH public key for user: ${OC_USER}"
+  # This avoids relying on ssh-copy-id (which requires a working login method).
+  # We install the key *before* hardening SSH so we don't lock you out.
+  HOME_DIR="/home/${OC_USER}"
+  SSH_DIR="${HOME_DIR}/.ssh"
+  AUTH_KEYS="${SSH_DIR}/authorized_keys"
+
+  install -d -m 700 -o "$OC_USER" -g "$OC_USER" "$SSH_DIR"
+  touch "$AUTH_KEYS"
+  chown "$OC_USER":"$OC_USER" "$AUTH_KEYS"
+  chmod 600 "$AUTH_KEYS"
+
+  # Append the key if it's not already present
+  if ! grep -Fqx "$SSH_PUBKEY" "$AUTH_KEYS" 2>/dev/null; then
+    echo "$SSH_PUBKEY" >>"$AUTH_KEYS"
+  fi
+else
+  warn "No SSH public key provided. You'll need to add one later before disabling password/root SSH."
+fi
+
 log "Configuring SSHD"
 # SSH is how you'll log into the server.
 # Here we apply safer defaults:
 # - optionally move SSH to a different port
 # - disable password logins (use SSH keys)
 # - optionally disable root login
+#
+# IMPORTANT: Make sure you have a working SSH key login before you apply strict settings.
+# We install your public key earlier in this script to make that easier.
 #
 # We write our settings as a drop-in file so it’s easy to find and revert.
 SSHD_CFG="/etc/ssh/sshd_config"
@@ -220,19 +247,19 @@ cat <<EOF
 MANUAL STEPS (you must do these)
 ============================================================
 
-1) On your laptop: add your SSH key for user '${OC_USER}'
+1) Verify SSH key login works for user '${OC_USER}'
 
-   If you **don't already have an SSH key** on your laptop, create one first:
+   On your laptop, if you **don't already have an SSH key**, create one:
 
        ssh-keygen -t ed25519 -C "your_email@example.com"
 
-   Then copy your public key to the VPS:
-
-       ssh-copy-id -p ${SSH_PORT} ${OC_USER}@<server-ip>
-
-   Verify you can log in as the non-root user before you close your current session:
+   Then test login:
 
        ssh -p ${SSH_PORT} ${OC_USER}@<server-ip>
+
+   Notes:
+   - If you pasted your public key when this script prompted you, this should work immediately.
+   - If you skipped the key prompt, add your key to /home/${OC_USER}/.ssh/authorized_keys as root.
 
 2) Run OpenClaw onboarding as '${OC_USER}':
 

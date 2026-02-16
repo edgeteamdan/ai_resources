@@ -23,17 +23,20 @@ On the VPS:
 ```bash
 apt update && apt install -y curl
 
-# Download the setup script (adjust URL after merge if needed)
 curl -fsSL https://raw.githubusercontent.com/noahvandal/ai_resources/main/libraries/OpenClaw/setup.sh -o setup.sh
 sudo bash setup.sh
 ```
 
+During setup, you’ll be prompted to **paste your SSH public key** (recommended).
+
 The script will:
+- create a non-root `openclaw` user
+- add your SSH key to `~openclaw/.ssh/authorized_keys`
 - install basic security tooling (UFW, fail2ban, unattended upgrades)
 - install Node 22 + pnpm
 - install the OpenClaw CLI
 
-**Important:** Don’t close your SSH session until you confirm you can log in as the new non-root user.
+**Important:** Don’t close your root SSH session until you confirm you can log in as the new non-root user.
 
 ## Step 3 — Create an SSH key (if you don’t already have one)
 
@@ -48,6 +51,14 @@ If you don’t see something like `id_ed25519` + `id_ed25519.pub`, create one:
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
 ```
+
+Now copy the public key to your clipboard:
+
+```bash
+cat ~/.ssh/id_ed25519.pub
+```
+
+Paste that when the VPS setup script asks for it.
 
 ## Step 4 — Log in as the non-root user
 
